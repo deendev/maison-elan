@@ -4,7 +4,8 @@ import { useStore, Reveal } from './store.jsx';
 import { PRODUCTS, COLLECTIONS, JOURNAL, INFO, FREE_SHIPPING, SHIP_STANDARD, SHIP_EXPRESS, euro, getProduct, NEW_ARRIVAL_IDS } from './data.js';
 import { Scene, ProductImage } from './art.jsx';
 import { ProductCard, QtyStepper, Breadcrumbs, SizeTable, ShippingMeter, Logo } from './components.jsx';
-import { stripeUrl } from './stripe.js';
+import { stripeUrl, STRIPE_LINKS } from './stripe.js';
+import { newOrder, STATUSES, statusIndex, carrierById, niceDate } from './catalog.js';
 import { JournalGrid, NewsletterSection, CategoryGrid, SectionHead } from './pages-home.jsx';
 
 /* ------------------------------------------------------------------ */
@@ -91,7 +92,14 @@ export function TestCardNote({ compact }) {
 }
 
 export function CheckoutPage() {
-  const { bag, subtotal, setQty, account } = useStore();
+  const { bag, subtotal, setQty, account, addOrder, removeItem, go } = useStore();
+  const placeDemo = (lines) => {
+    const o = newOrder({ items: lines.map((l) => ({ id: l.id, colorIndex: l.colorIndex, size: l.size, qty: l.qty, price: l.product.price })), customer: { name: account ? `${account.first} ${account.last}`.trim() : '', email } });
+    addOrder(o);
+    lines.forEach((l) => removeItem(l.key));
+    go('order-' + o.id);
+  };
+  const payLine = (line) => (STRIPE_LINKS[line.id] ? goToStripe(line, email) : placeDemo([line]));
   const [email, setEmail] = useState(account?.email || '');
   const [summaryOpen, setSummaryOpen] = useState(false);
   const total = subtotal;
@@ -148,7 +156,7 @@ export function CheckoutPage() {
 
             {single ? (
               <div className="mt-6">
-                <button onClick={() => goToStripe(bag[0], email)} className="btn-dark w-full h-14">
+                <button onClick={() => payLine(bag[0])} className="btn-dark w-full h-14">
                   <Lock size={15} strokeWidth={1.4} /> Continue to payment · {euro(total)}
                 </button>
                 {bag[0].qty > 1 && <p className="mt-3 text-[12.5px] text-charcoal/60">The payment page opens with quantity 1. Set it to {bag[0].qty} there.</p>}
@@ -165,7 +173,7 @@ export function CheckoutPage() {
                         <p className="text-[14px] truncate">{i.product.name}</p>
                         <p className="text-[12px] text-charcoal/60">{i.product.colors[i.colorIndex].name} · {i.size} · Qty {i.qty}</p>
                       </div>
-                      <button onClick={() => goToStripe(i, email)} className="btn-dark h-11 px-5 text-[10px]">Pay {euro(i.product.price * i.qty)}</button>
+                      <button onClick={() => payLine(i)} className="btn-dark h-11 px-5 text-[10px]">Pay {euro(i.product.price * i.qty)}</button>
                     </li>
                   ))}
                 </ul>
@@ -187,7 +195,7 @@ export function CheckoutPage() {
 }
 
 export function ConfirmationPage() {
-  const { orders, setOrders, removeItem, bag } = useStore();
+  const { orders, addOrder, removeItem, bag } = useStore();
   const [order, setOrder] = useState(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -195,22 +203,19 @@ export function ConfirmationPage() {
     let pending = null;
     try { pending = JSON.parse(localStorage.getItem('elan:pending') || 'null'); } catch { /* ignore */ }
     if (paid && pending) {
-      const o = {
+      const o = newOrder({
         id: 'ME-' + paid.slice(-6).toUpperCase(),
         stripeSession: paid,
-        date: new Date().toISOString(),
         items: [{ id: pending.id, colorIndex: pending.colorIndex, size: pending.size, qty: pending.qty, price: pending.price }],
-        subtotal: pending.price * pending.qty, discount: 0, ship: 0, total: pending.price * pending.qty,
-        method: 'standard', name: '', email: '', address: 'Collected on the secure payment page',
-      };
-      setOrders((list) => (list.some((x) => x.stripeSession === paid) ? list : [o, ...list].slice(0, 20)));
+      });
+      addOrder(o);
       removeItem(pending.key);
       try { localStorage.removeItem('elan:pending'); } catch { /* ignore */ }
       setOrder(o);
     } else if (paid) {
       setOrder({ id: 'ME-' + paid.slice(-6).toUpperCase(), stripeSession: paid, items: [], total: 0 });
     } else {
-      setOrder(orders[0] || null);
+      setOrder(orders.find((o) => !o.sample) || null);
     }
     if (paid) {
       try { window.history.replaceState(null, '', window.location.pathname + '#order-confirmed'); } catch { /* ignore */ }
@@ -255,7 +260,106 @@ export function ConfirmationPage() {
       )}
       <div className="mt-14 flex flex-col sm:flex-row gap-3 justify-center">
         {bag.length > 0 ? <a href="#checkout" className="btn-dark">Pay for remaining {bag.length} {bag.length === 1 ? 'piece' : 'pieces'}</a> : <a href="#new-arrivals" className="btn-dark">Continue Shopping</a>}
-        <a href="#account" className="btn-outline">View Order History</a>
+        {order.items.length > 0 ? <a href={'#order-' + order.id} className="btn-outline">Track Your Order</a> : <a href="#account" className="btn-outline">View Order History</a>}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Customer order tracking                                              */
+/* ------------------------------------------------------------------ */
+export function OrderTimeline({ order, compact }) {
+  const cur = statusIndex(order.status);
+  return (
+    <ol className={'relative ' + (compact ? 'space-y-4' : 'space-y-6')}>
+      {STATUSES.map((s, i) => {
+        const h = (order.history || []).find((x) => x.status === s.id);
+        const done = i <= cur;
+        return (
+          <li key={s.id} className="relative flex gap-4">
+            {i < STATUSES.length - 1 && <span className={'absolute left-[9px] top-6 w-px ' + (compact ? 'h-[calc(100%+4px)]' : 'h-[calc(100%+12px)]') + ' ' + (i < cur ? 'bg-ink' : 'bg-charcoal/15')} />}
+            <span className={'relative z-10 mt-0.5 h-[19px] w-[19px] shrink-0 rounded-full border grid place-items-center ' + (done ? 'bg-ink border-ink text-ivory' : 'bg-ivory border-charcoal/25')}>
+              {done && <Check size={11} strokeWidth={2} />}
+            </span>
+            <div className="flex-1">
+              <p className={'text-[14px] ' + (done ? 'text-ink' : 'text-charcoal/45') + (i === cur ? ' font-semibold' : '')}>{s.label}</p>
+              {h && <p className="text-[12px] text-charcoal/55">{new Date(h.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+export function OrderTrackingPage({ id }) {
+  const { orders } = useStore();
+  const o = orders.find((x) => x.id === id);
+  if (!o) {
+    return (
+      <div className="page-in mx-auto max-w-[700px] px-5 py-32 text-center">
+        <p className="eyebrow text-taupe">Order {id}</p>
+        <h1 className="display text-[44px] md:text-[64px] mt-5">Order not <em>found.</em></h1>
+        <p className="mt-5 text-[15px] text-charcoal/70">Orders are saved in the browser they were placed in.</p>
+        <a href="#account" className="btn-dark mt-10">My Account</a>
+      </div>
+    );
+  }
+  const carrier = o.tracking && carrierById(o.tracking.carrier);
+  const delivered = o.status === 'delivered';
+  return (
+    <div className="page-in mx-auto max-w-[1100px] px-5 md:px-10 pt-10 md:pt-16 pb-24">
+      <Breadcrumbs items={[['Home', 'home'], ['My Account', 'account'], ['Order ' + o.id]]} />
+      <div className="mt-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <p className="eyebrow text-taupe">Order {o.id} · {niceDate(o.date, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <h1 className="display text-[44px] md:text-[72px] mt-4">{STATUSES[statusIndex(o.status)].short}<em>.</em></h1>
+        </div>
+        <div className="md:text-right">
+          <p className="eyebrow text-charcoal/60">{delivered ? 'Delivered' : 'Estimated delivery'}</p>
+          <p className="font-serif text-[26px] md:text-[30px] mt-1">{delivered ? niceDate((o.history || []).slice(-1)[0]?.at || o.eta) : niceDate(o.eta)}</p>
+        </div>
+      </div>
+
+      <div className="mt-12 grid md:grid-cols-[1fr_1.2fr] gap-10 md:gap-16">
+        <div>
+          <div className="p-7 bg-cream/60"><OrderTimeline order={o} /></div>
+          <div className="mt-4 p-7 border border-charcoal/15">
+            <p className="eyebrow">Tracking</p>
+            {o.tracking ? (
+              <>
+                <p className="mt-3 text-[14px]">{carrier?.name}</p>
+                <p className="font-mono text-[15px] tabular-nums mt-1">{o.tracking.code}</p>
+                {carrier && <a href={carrier.url(o.tracking.code)} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex btn-outline h-11">Track with {carrier.name}</a>}
+              </>
+            ) : (
+              <p className="mt-3 text-[14px] text-charcoal/65">Your tracking number will appear here as soon as your order leaves the atelier.</p>
+            )}
+          </div>
+          {o.note && <p className="mt-4 text-[13.5px] text-charcoal/75 p-5 bg-cream/40">“{o.note}”</p>}
+        </div>
+        <div>
+          <p className="eyebrow mb-2">Your pieces</p>
+          <div className="border-t border-charcoal/15">
+            {o.items.map((it, k) => {
+              const p = getProduct(it.id);
+              if (!p) return null;
+              return (
+                <a key={k} href={'#product-' + p.id} className="py-5 flex gap-5 border-b border-charcoal/10 group">
+                  <ProductImage product={p} colorIndex={Math.min(it.colorIndex, p.colors.length - 1)} className="w-[80px] aspect-[4/5]" />
+                  <div className="flex-1"><p className="text-[14px] group-hover:underline underline-offset-4">{p.name}</p><p className="text-[12.5px] text-charcoal/60">{p.colors[Math.min(it.colorIndex, p.colors.length - 1)]?.name} · {it.size} · Qty {it.qty}</p></div>
+                  <p className="text-[14px] tabular-nums">{euro(it.price * it.qty)}</p>
+                </a>
+              );
+            })}
+            <div className="pt-5 space-y-2 text-[13.5px]">
+              <div className="flex justify-between"><span>Delivery</span><span>Complimentary</span></div>
+              <div className="flex justify-between font-serif text-[22px] pt-2"><span>Total</span><span className="tabular-nums">{euro(o.total)}</span></div>
+            </div>
+          </div>
+          <p className="mt-6 text-[12px] text-charcoal/50">Order status in this demo is updated from the shop's admin dashboard.</p>
+        </div>
       </div>
     </div>
   );
@@ -305,7 +409,8 @@ export function WishlistPage() {
 
 /* ------------------------------------------------------------------ */
 export function AccountPage() {
-  const { account, setAccount, orders, wish, notify } = useStore();
+  const { account, setAccount, orders: allOrders, wish, notify } = useStore();
+  const orders = allOrders.filter((o) => !o.sample);
   const [mode, setMode] = useState('signin');
   const [f, setF] = useState({ first: '', last: '', email: '', pw: '' });
   const [err, setErr] = useState('');
@@ -340,12 +445,12 @@ export function AccountPage() {
         ) : (
           <div className="mt-6 border-t border-charcoal/15">
             {orders.map((o) => (
-              <div key={o.id} className="py-5 border-b border-charcoal/10 grid grid-cols-2 md:grid-cols-[1fr_1fr_1fr_auto] gap-4 items-center text-[13.5px]">
+              <a key={o.id} href={'#order-' + o.id} className="py-5 border-b border-charcoal/10 grid grid-cols-2 md:grid-cols-[1fr_1fr_1fr_auto] gap-4 items-center text-[13.5px] hover:bg-cream/40 transition-colors">
                 <div><p className="font-medium">{o.id}</p><p className="text-charcoal/60 text-[12.5px]">{new Date(o.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
-                <div className="flex -space-x-3">{o.items.slice(0, 4).map((it, k) => <ProductImage key={k} product={getProduct(it.id)} colorIndex={it.colorIndex} className="w-11 aspect-[4/5] ring-2 ring-ivory" />)}</div>
-                <p className="text-charcoal/70">{o.items.reduce((s, i) => s + i.qty, 0)} items · Demo</p>
+                <div className="flex -space-x-3">{o.items.slice(0, 4).map((it, k) => getProduct(it.id) && <ProductImage key={k} product={getProduct(it.id)} colorIndex={Math.min(it.colorIndex, getProduct(it.id).colors.length - 1)} className="w-11 aspect-[4/5] ring-2 ring-ivory" />)}</div>
+                <p className="text-charcoal/70">{o.items.reduce((s, i) => s + i.qty, 0)} items · <span className="text-ink">{STATUSES[statusIndex(o.status)].short}</span></p>
                 <p className="font-serif text-[20px] tabular-nums">{euro(o.total)}</p>
-              </div>
+              </a>
             ))}
           </div>
         )}

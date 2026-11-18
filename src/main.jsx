@@ -1,11 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
+import './catalog.js';
 import { StoreProvider, useStore } from './store.jsx';
 import { AnnouncementBar, Header, MobileMenu, MobileTabBar, SearchOverlay, BagDrawer, QuickAddSheet, SizeGuideModal, Toast, Footer } from './components.jsx';
 import HomePage from './pages-home.jsx';
 import { ShopPage, ProductPage, NotFound, listingFor } from './pages-shop.jsx';
-import { CheckoutPage, ConfirmationPage, WishlistPage, AccountPage, CollectionsPage, JournalPage, ArticlePage, StoryPage, CampaignPage, InfoPage } from './pages-more.jsx';
+import AdminApp from './admin.jsx';
+import { OrderTrackingPage, CheckoutPage, ConfirmationPage, WishlistPage, AccountPage, CollectionsPage, JournalPage, ArticlePage, StoryPage, CampaignPage, InfoPage } from './pages-more.jsx';
 import { JOURNAL, INFO, getProduct } from './data.js';
 
 const TITLES = { home: 'MAISON ÉLAN | Contemporary Luxury Fashion' };
@@ -18,6 +20,7 @@ function Router() {
   else if (listingFor(route)) { const c = listingFor(route); page = <ShopPage route={route} />; title = c.title; }
   else if (route === 'checkout') { page = <CheckoutPage />; title = 'Checkout'; }
   else if (route === 'order-confirmed') { page = <ConfirmationPage />; title = 'Order Confirmed'; }
+  else if (route.startsWith('order-')) { page = <OrderTrackingPage id={route.slice(6)} />; title = 'Order ' + route.slice(6); }
   else if (route === 'wishlist') { page = <WishlistPage />; title = 'Wishlist'; }
   else if (route === 'account') { page = <AccountPage />; title = 'My Account'; }
   else if (route === 'collections') { page = <CollectionsPage />; title = 'Collections'; }
@@ -31,9 +34,11 @@ function Router() {
   return <main id="main" key={route} className="flex-1">{page}</main>;
 }
 
-function App() {
+function Shell() {
+  const { route } = useStore();
+  React.useEffect(() => { if (route.startsWith('admin')) document.title = 'Admin | MAISON ÉLAN'; }, [route]);
+  if (route === 'admin' || route.startsWith('admin-')) return <><AdminApp route={route} /><Toast /></>;
   return (
-    <StoreProvider>
       <div className="min-h-screen flex flex-col">
         <a href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }} className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] bg-ink text-ivory px-4 py-2">Skip to content</a>
         <AnnouncementBar />
@@ -48,6 +53,13 @@ function App() {
         <SizeGuideModal />
         <Toast />
       </div>
+  );
+}
+
+function App() {
+  return (
+    <StoreProvider>
+      <Shell />
     </StoreProvider>
   );
 }

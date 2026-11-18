@@ -544,7 +544,7 @@ export function ProductCard({ product, index = 0, compact = false }) {
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-lux hidden md:block">
           <ProductImage product={product} colorIndex={color} variant="detail" className="h-full w-full" alt="" />
         </div>
-        {product.isNew && <span className="absolute top-3 left-3 eyebrow text-[9.5px] bg-ivory/90 px-2 py-1">New</span>}
+        {product.soldOut ? <span className="absolute top-3 left-3 eyebrow text-[9.5px] bg-ink text-ivory px-2 py-1">Sold out</span> : product.isNew && <span className="absolute top-3 left-3 eyebrow text-[9.5px] bg-ivory/90 px-2 py-1">New</span>}
       </a>
       <button
         onClick={() => toggleWish(product.id)}
@@ -557,7 +557,7 @@ export function ProductCard({ product, index = 0, compact = false }) {
       {/* Quick add, anchored to the bottom edge of the image */}
       <div className="relative">
         <div className="absolute -top-[52px] md:-top-14 left-2 right-2 md:left-3 md:right-3 flex justify-end md:justify-stretch">
-          {picking ? (
+          {product.soldOut ? null : picking ? (
             <div className="w-full bg-ivory/95 backdrop-blur px-3 py-2.5 fade-in">
               <p className="eyebrow text-[9.5px] text-charcoal/60 mb-2">Select size</p>
               <div className="flex gap-1.5">
@@ -753,6 +753,7 @@ export function Footer() {
           </ul>
           <ul className="flex flex-wrap gap-x-6 gap-y-3 text-[11.5px] text-ivory/50">
             <li><a href="#help-privacy" className="hover:text-ivory">Privacy</a></li>
+            <li><a href="#admin" className="hover:text-ivory">Admin (demo)</a></li>
             <li><a href="#help-terms" className="hover:text-ivory">Terms</a></li>
             <li><a href="#help-accessibility" className="hover:text-ivory">Accessibility</a></li>
             <li>© 2026 Maison Élan. A fictional brand, designed as a portfolio project.</li>

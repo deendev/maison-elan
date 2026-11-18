@@ -512,8 +512,8 @@ export function SceneArt({ name = 'hero', className = '' }) {
 /* ------------------------------------------------------------------ */
 /* Picture: photo if registered, otherwise art                          */
 /* ------------------------------------------------------------------ */
-export function Picture({ photo, alt = '', className = '', children, priority = false, zoom = 1, position }) {
-  const src = photo && PHOTOS[photo];
+export function Picture({ photo, src: direct, alt = '', className = '', children, priority = false, zoom = 1, position }) {
+  const src = direct || (photo && PHOTOS[photo]);
   const pos = position || FOCUS[photo] || '50% 50%';
   return (
     <div className={'relative overflow-hidden ' + (src ? 'bg-cream ' : 'grain ') + className} role={alt ? 'img' : undefined} aria-label={alt || undefined}>
@@ -553,9 +553,10 @@ export function ProductImage({ product, colorIndex = 0, variant = 'front', class
   const photoKey = `p-${product.id}-${colorIndex}`;
   const label = variant;
   const text = alt ?? `${product.name} in ${color.name}${label === 'detail' ? ', detail view' : ''}`;
-  if (PHOTOS[photoKey]) {
+  const own = color.image || (colorIndex === 0 && product.image);
+  if (own || PHOTOS[photoKey]) {
     const v = VIEW[variant] || VIEW.front;
-    return <Picture photo={photoKey} alt={text} className={className} zoom={v.zoom} position={v.pos} />;
+    return <Picture photo={own ? undefined : photoKey} src={own || undefined} alt={text} className={className} zoom={v.zoom} position={v.pos} />;
   }
   let tone = TONES[product.name.length % TONES.length];
   if (variant === 'studio') { tone = lum(color.hex) < 0.3 ? '#CFC5B6' : '#2E2B29'; variant = 'front'; }

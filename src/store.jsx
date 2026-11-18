@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { getProduct, FREE_SHIPPING, SHIP_STANDARD } from './data.js';
+import { sampleOrders } from './catalog.js';
 
 const Ctx = createContext(null);
 export const useStore = () => useContext(Ctx);
@@ -31,7 +32,15 @@ export function StoreProvider({ children }) {
   const [bag, setBag] = useState(() => load('bag', []));
   const [wish, setWish] = useState(() => load('wish', []));
   const [account, setAccount] = useState(() => load('account', null));
-  const [orders, setOrders] = useState(() => load('orders', []));
+  const [orders, setOrders] = useState(() => {
+    const o = load('orders', []);
+    if (!load('seeded', false)) { save('seeded', true); return [...o, ...sampleOrders()]; }
+    return o;
+  });
+  const [catalogVersion, setCatalogVersion] = useState(0);
+  const bumpCatalog = useCallback(() => setCatalogVersion((v) => v + 1), []);
+  const updateOrder = useCallback((id, patch) => setOrders((list) => list.map((o) => (o.id === id ? { ...o, ...(typeof patch === 'function' ? patch(o) : patch) } : o))), []);
+  const addOrder = useCallback((o) => setOrders((list) => (list.some((x) => x.id === o.id || (o.stripeSession && x.stripeSession === o.stripeSession)) ? list : [o, ...list].slice(0, 60))), []);
   const [bagOpen, setBagOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -98,7 +107,7 @@ export function StoreProvider({ children }) {
     });
   }, [notify, go]);
 
-  const lines = useMemo(() => bag.map((i) => ({ ...i, product: getProduct(i.id) })).filter((i) => i.product), [bag]);
+  const lines = useMemo(() => bag.map((i) => ({ ...i, product: getProduct(i.id) })).filter((i) => i.product), [bag, catalogVersion]);
   const count = lines.reduce((s, i) => s + i.qty, 0);
   const subtotal = lines.reduce((s, i) => s + i.qty * i.product.price, 0);
   const shipping = 0; // Delivery is complimentary in the Stripe test-mode demo
@@ -107,7 +116,7 @@ export function StoreProvider({ children }) {
     route, go, bag: lines, count, subtotal, shipping,
     addToBag, setQty, removeItem, clearBag,
     wish, toggleWish, isWished: (id) => wish.includes(id),
-    account, setAccount, orders, setOrders,
+    account, setAccount, orders, setOrders, updateOrder, addOrder, catalogVersion, bumpCatalog,
     bagOpen, setBagOpen, searchOpen, setSearchOpen, menuOpen, setMenuOpen,
     quick, setQuick, sizeGuide, setSizeGuide, toast, setToast, notify,
   };

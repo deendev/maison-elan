@@ -365,9 +365,9 @@ export function ProductPage({ id }) {
 
               <div className="mt-8 flex gap-3">
                 <QtyStepper value={qty} onChange={(v) => setQty(Math.max(1, Math.min(10, v)))} />
-                <button onClick={add} className="btn-dark flex-1">Add to Bag</button>
+                <button onClick={add} disabled={p.soldOut} className="btn-dark flex-1 disabled:opacity-40 disabled:cursor-not-allowed">{p.soldOut ? 'Sold Out' : 'Add to Bag'}</button>
               </div>
-              {STRIPE_LINKS[p.id] && (
+              {STRIPE_LINKS[p.id] && !p.soldOut && (
                 <button onClick={() => { if (!size) { setErr(true); document.getElementById('size-label')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; } buyNow(); }} className="mt-3 btn-outline w-full">
                   Buy now <span className="opacity-60 normal-case tracking-normal">(test mode)</span>
                 </button>
@@ -418,7 +418,7 @@ export function ProductPage({ id }) {
           <p className="text-[13px] truncate">{p.name}</p>
           <p className="text-[12px] text-charcoal/60">{euro(p.price)} · {p.colors[color].name}{size ? ' · ' + size : ''}</p>
         </div>
-        <button onClick={add} className="btn-dark px-6 h-11">{size ? 'Add to Bag' : 'Select Size'}</button>
+        <button onClick={add} disabled={p.soldOut} className="btn-dark px-6 h-11 disabled:opacity-40">{p.soldOut ? 'Sold Out' : size ? 'Add to Bag' : 'Select Size'}</button>
       </div>
 
       {/* Zoom viewer */}

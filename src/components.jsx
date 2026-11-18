@@ -415,7 +415,7 @@ export function BagDrawer() {
               <div className="flex justify-between text-[14px]"><span>Subtotal</span><span className="tabular-nums">{euro(subtotal)}</span></div>
               <div className="flex justify-between text-[14px] text-charcoal/70"><span>Standard delivery</span><span>{shipping === 0 ? 'Complimentary' : euro(shipping)}</span></div>
               <div className="flex justify-between font-serif text-[22px] pt-2"><span>Total</span><span className="tabular-nums">{euro(subtotal + shipping)}</span></div>
-              <p className="text-[11.5px] text-charcoal/50">Taxes included. Secure checkout by Stripe (test mode).</p>
+              <p className="text-[11.5px] text-charcoal/50">Taxes included. Secure checkout (test mode).</p>
               <div className="grid gap-2.5 pt-3">
                 <button onClick={() => go('checkout')} className="btn-dark w-full">Proceed to Checkout</button>
                 <button onClick={() => setBagOpen(false)} className="btn-outline w-full">Continue Shopping</button>

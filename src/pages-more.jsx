@@ -83,7 +83,7 @@ export function TestCardNote({ compact }) {
     <div className={'bg-cream/60 flex gap-3 text-[13px] text-charcoal/80 ' + (compact ? 'p-4' : 'p-5')}>
       <Lock size={16} strokeWidth={1.3} className="shrink-0 mt-0.5" />
       <div>
-        <p><strong className="font-semibold text-ink">Stripe test mode.</strong> You'll be taken to a secure Stripe checkout page. No real money is taken.</p>
+        <p><strong className="font-semibold text-ink">Test mode.</strong> You'll be taken to a secure payment page. No real money is taken.</p>
         <p className="mt-2">Test card: <span className="font-mono tabular-nums">4242 4242 4242 4242</span>, any future expiry date, any CVC and any postcode.</p>
       </div>
     </div>
@@ -114,7 +114,7 @@ export function CheckoutPage() {
       <div className="bg-cream/60 border-b border-charcoal/10">
         <div className="mx-auto max-w-[1300px] px-5 md:px-10 py-3 flex items-center gap-3 text-[12.5px]">
           <Info size={15} strokeWidth={1.4} className="shrink-0" />
-          <p><strong className="font-semibold">Portfolio demo in Stripe test mode.</strong> Payments go through real Stripe Checkout pages, but only test cards work and nothing is shipped.</p>
+          <p><strong className="font-semibold">Portfolio demo in test mode.</strong> Checkout is fully working, but only test cards are accepted and nothing is shipped.</p>
         </div>
       </div>
 
@@ -135,7 +135,7 @@ export function CheckoutPage() {
 
           <section className="mt-10" aria-labelledby="c1">
             <h2 id="c1" className="font-serif text-[24px]"><span className="text-taupe mr-3">01</span>Your email</h2>
-            <p className="mt-2 text-[13px] text-charcoal/60">Optional. We pass it to Stripe so you don't have to type it twice.</p>
+            <p className="mt-2 text-[13px] text-charcoal/60">Optional. We fill it in on the payment page so you don't have to type it twice.</p>
             <label className="block mt-4 max-w-[460px]">
               <span className="sr-only">Email</span>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="field" autoComplete="email" />
@@ -143,20 +143,20 @@ export function CheckoutPage() {
           </section>
 
           <section className="mt-12" aria-labelledby="c2">
-            <h2 id="c2" className="font-serif text-[24px]"><span className="text-taupe mr-3">02</span>Pay securely with Stripe</h2>
+            <h2 id="c2" className="font-serif text-[24px]"><span className="text-taupe mr-3">02</span>Secure payment</h2>
             <div className="mt-5"><TestCardNote /></div>
 
             {single ? (
               <div className="mt-6">
                 <button onClick={() => goToStripe(bag[0], email)} className="btn-dark w-full h-14">
-                  <Lock size={15} strokeWidth={1.4} /> Continue to Stripe · {euro(total)}
+                  <Lock size={15} strokeWidth={1.4} /> Continue to payment · {euro(total)}
                 </button>
-                {bag[0].qty > 1 && <p className="mt-3 text-[12.5px] text-charcoal/60">Stripe opens with quantity 1. Set it to {bag[0].qty} on the payment page.</p>}
-                <p className="mt-3 text-[12.5px] text-charcoal/60">Stripe will ask for your delivery address. Delivery is complimentary.</p>
+                {bag[0].qty > 1 && <p className="mt-3 text-[12.5px] text-charcoal/60">The payment page opens with quantity 1. Set it to {bag[0].qty} there.</p>}
+                <p className="mt-3 text-[12.5px] text-charcoal/60">You'll enter your delivery address on the payment page. Delivery is complimentary.</p>
               </div>
             ) : (
               <div className="mt-6">
-                <p className="text-[13.5px] text-charcoal/75">This demo store uses one Stripe payment link per piece, so pieces are paid one at a time. After each payment you come back here to pay for the next.</p>
+                <p className="text-[13.5px] text-charcoal/75">In this demo store each piece is paid separately. After each payment you come back here to pay for the next.</p>
                 <ul className="mt-5 divide-y divide-charcoal/10 border-y border-charcoal/10">
                   {bag.map((i) => (
                     <li key={i.key} className="py-4 flex items-center gap-4">
@@ -201,7 +201,7 @@ export function ConfirmationPage() {
         date: new Date().toISOString(),
         items: [{ id: pending.id, colorIndex: pending.colorIndex, size: pending.size, qty: pending.qty, price: pending.price }],
         subtotal: pending.price * pending.qty, discount: 0, ship: 0, total: pending.price * pending.qty,
-        method: 'standard', name: '', email: '', address: 'Collected securely by Stripe',
+        method: 'standard', name: '', email: '', address: 'Collected on the secure payment page',
       };
       setOrders((list) => (list.some((x) => x.stripeSession === paid) ? list : [o, ...list].slice(0, 20)));
       removeItem(pending.key);
@@ -232,9 +232,9 @@ export function ConfirmationPage() {
         <p className="eyebrow text-taupe mt-8">Order {order.id}</p>
         <h1 className="display text-[48px] md:text-[80px] mt-4">Thank <em>you.</em></h1>
         <p className="mt-6 text-[15px] text-charcoal/70 max-w-[540px] mx-auto">
-          {order.stripeSession ? <>Your test payment was completed on Stripe. You can see it in the Stripe dashboard under Payments (test mode). Nothing has been charged or shipped.</> : <>Your order is saved in this browser.</>}
+          {order.stripeSession ? <>Your test payment went through. Nothing has been charged or shipped.</> : <>Your order is saved in this browser.</>}
         </p>
-        {order.stripeSession && <p className="mt-3 text-[11.5px] text-charcoal/45 break-all">Stripe session {order.stripeSession}</p>}
+        {order.stripeSession && <p className="mt-3 text-[11.5px] text-charcoal/45 break-all">Payment reference {order.stripeSession}</p>}
       </div>
       {order.items.length > 0 && (
         <div className="mt-14 border-t border-charcoal/15">
@@ -250,7 +250,7 @@ export function ConfirmationPage() {
             );
           })}
           <div className="pt-6 flex justify-between font-serif text-[22px]"><span>Total</span><span>{euro(order.total)}</span></div>
-          <p className="text-[12px] text-charcoal/55 mt-1">Delivery complimentary. Address collected by Stripe.</p>
+          <p className="text-[12px] text-charcoal/55 mt-1">Delivery complimentary.</p>
         </div>
       )}
       <div className="mt-14 flex flex-col sm:flex-row gap-3 justify-center">

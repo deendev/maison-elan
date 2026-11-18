@@ -331,13 +331,13 @@ export const INFO = {
   },
   privacy: {
     title: 'Privacy Policy', body: [
-      ['Portfolio demonstration', 'This website is a fictional brand created as a design and development portfolio piece. The site itself stores nothing on a server. Payment details and delivery addresses entered at checkout are handled by Stripe in test mode.'],
+      ['Portfolio demonstration', 'This website is a fictional brand created as a design and development portfolio piece. The site itself stores nothing on a server. Payment details and delivery addresses entered at checkout are handled by our payment provider in test mode.'],
       ['Local storage', 'Your bag, wishlist and demo account are saved only in this browser using local storage so they persist between visits. Clear your browser data to remove them.'],
     ],
   },
   terms: {
     title: 'Terms & Conditions', body: [
-      ['Demonstration only', 'MAISON ÉLAN is fictional. Checkout uses Stripe in test mode: only Stripe test cards are accepted, no money is taken and no orders are fulfilled.'],
+      ['Demonstration only', 'MAISON ÉLAN is fictional. Checkout runs in test mode: only test cards are accepted, no money is taken and no orders are fulfilled.'],
       ['Imagery', 'Imagery on this site is art-directed for demonstration purposes.'],
     ],
   },

@@ -368,8 +368,8 @@ export function ProductPage({ id }) {
                 <button onClick={add} className="btn-dark flex-1">Add to Bag</button>
               </div>
               {STRIPE_LINKS[p.id] && (
-                <button onClick={() => { if (!size) { setErr(true); document.getElementById('size-label')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; } buyNow(); }} className="mt-3 btn w-full bg-[#635BFF] text-white hover:bg-[#5248e6]">
-                  <Lock size={14} strokeWidth={1.5} /> Buy now with Stripe <span className="opacity-70 normal-case tracking-normal">(test)</span>
+                <button onClick={() => { if (!size) { setErr(true); document.getElementById('size-label')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; } buyNow(); }} className="mt-3 btn-outline w-full">
+                  Buy now <span className="opacity-60 normal-case tracking-normal">(test mode)</span>
                 </button>
               )}
               <button onClick={() => toggleWish(p.id)} className="mt-3 btn-outline w-full" aria-pressed={wished}>
